@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Trade Order WebSocket Test</title>
+    <style>
+        #messages {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 10px 0;
+            height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h2>Trade Order WebSocket Test</h2>
+    <div id="messages"></div>
+
+    <script>
+        const messagesDiv = document.getElementById('messages');
+        const ws = new WebSocket('ws://localhost:8000/ws');
+
+        ws.onopen = function() {
+            addMessage('Connected to WebSocket');
+        };
+
+        ws.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            addMessage('Received order: ' + JSON.stringify(data, null, 2));
+        };
+
+        ws.onclose = function() {
+            addMessage('Disconnected from WebSocket');
+        };
+
+        function addMessage(message) {
+            const messageElement = document.createElement('div');
+            messageElement.textContent = message;
+            messagesDiv.appendChild(messageElement);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+    </script>
+</body>
+</html>
