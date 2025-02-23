@@ -1,10 +1,8 @@
-from fastapi import FastAPI, Depends, HTTPException, WebSocket, WebSocketDisconnect, Request
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from typing import List
 import os
-import json
 
 from models import Base, Order
 from schemas import OrderCreate, OrderResponse
@@ -15,13 +13,11 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# PostgreSQL Database configuration
-POSTGRES_USER = os.getenv("USER", "xiongfeng")
-POSTGRES_HOST = "localhost"
-POSTGRES_PORT = "5432"
-POSTGRES_DB = "trades"
-
-DATABASE_URL = f"postgresql://{POSTGRES_USER}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
+# Database configuration from environment variables
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    f"postgresql://{os.getenv('USER', 'xiongfeng')}@localhost:5432/trades"
+)
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -42,12 +38,11 @@ class ConnectionManager:
         self.active_connections.remove(websocket)
 
     async def broadcast(self, message: dict):
-        if self.active_connections:  # Only try to broadcast if there are connections
+        if self.active_connections:
             for connection in self.active_connections:
                 try:
                     await connection.send_json(message)
                 except:
-                    # If sending fails, remove the connection
                     self.active_connections.remove(connection)
 
 
@@ -62,32 +57,12 @@ def get_db():
         db.close()
 
 
-@app.get("/", response_class=HTMLResponse)
-async def root():
-    return """
-    <html>
-        <head>
-            <title>Trade Order API</title>
-        </head>
-        <body>
-            <h1>Trade Order API</h1>
-            <p>Available endpoints:</p>
-            <ul>
-                <li><a href="/docs">API Documentation (Swagger UI)</a></li>
-                <li><a href="/redoc">Alternative API Documentation (ReDoc)</a></li>
-            </ul>
-        </body>
-    </html>
-    """
-
-
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
     try:
         while True:
             data = await websocket.receive_text()
-            # You could handle incoming WebSocket messages here if needed
     except WebSocketDisconnect:
         manager.disconnect(websocket)
     except Exception as e:
@@ -97,20 +72,16 @@ async def websocket_endpoint(websocket: WebSocket):
 @app.post("/orders/", response_model=OrderResponse)
 async def create_order(order: OrderCreate, db: Session = Depends(get_db)):
     try:
-        # Create new order
         db_order = Order(
             symbol=order.symbol,
             price=order.price,
             quantity=order.quantity,
             order_type=order.order_type
         )
-
-        # Add to database
         db.add(db_order)
         db.commit()
         db.refresh(db_order)
 
-        # Prepare response data
         response_data = {
             "id": db_order.id,
             "symbol": db_order.symbol,
@@ -120,7 +91,6 @@ async def create_order(order: OrderCreate, db: Session = Depends(get_db)):
             "created_at": db_order.created_at.isoformat()
         }
 
-        # Try to broadcast to WebSocket clients
         try:
             await manager.broadcast({
                 "event": "new_order",
@@ -128,7 +98,6 @@ async def create_order(order: OrderCreate, db: Session = Depends(get_db)):
             })
         except Exception as ws_error:
             print(f"WebSocket broadcast failed: {ws_error}")
-            # Continue even if WebSocket broadcast fails
 
         return response_data
 
