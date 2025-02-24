@@ -13,11 +13,21 @@ logger = logging.getLogger(__name__)
 
 from models import Base, Order
 from schemas import OrderCreate, OrderResponse
+from fastapi.middleware.cors import CORSMiddleware
+
 
 app = FastAPI(
     title="Trade Order API",
     description="A simple REST API for handling trade orders with WebSocket updates",
     version="1.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins in development
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Database configuration from different environment variables

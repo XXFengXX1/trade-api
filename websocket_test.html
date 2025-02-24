@@ -10,6 +10,8 @@
             height: 300px;
             overflow-y: auto;
         }
+        .error { color: red; }
+        .success { color: green; }
     </style>
 </head>
 <body>
@@ -18,29 +20,42 @@
 
     <script>
         const messagesDiv = document.getElementById('messages');
-        // Get the current host and port from the browser URL
-        const wsUrl = `ws://${window.location.hostname}:8000/ws`;
-        const ws = new WebSocket(wsUrl);
+        const wsUrl = `ws://${window.location.host}/ws`;
+        console.log('Connecting to:', wsUrl);
 
-        ws.onopen = function() {
-            addMessage('Connected to WebSocket');
-        };
+        function connect() {
+            const ws = new WebSocket(wsUrl);
 
-        ws.onmessage = function(event) {
-            const data = JSON.parse(event.data);
-            addMessage('New order received: ' + JSON.stringify(data, null, 2));
-        };
+            ws.onopen = function() {
+                addMessage('Connected to WebSocket', 'success');
+            };
 
-        ws.onclose = function() {
-            addMessage('Disconnected from WebSocket');
-        };
+            ws.onmessage = function(event) {
+                console.log('Received:', event.data);
+                const data = JSON.parse(event.data);
+                addMessage('New order received: ' + JSON.stringify(data, null, 2), 'success');
+            };
 
-        function addMessage(message) {
+            ws.onclose = function() {
+                addMessage('Disconnected from WebSocket. Reconnecting...', 'error');
+                setTimeout(connect, 1000);
+            };
+
+            ws.onerror = function(error) {
+                console.error('WebSocket error:', error);
+                addMessage('WebSocket error occurred', 'error');
+            };
+        }
+
+        function addMessage(message, type = '') {
             const messageElement = document.createElement('div');
-            messageElement.textContent = new Date().toISOString() + ': ' + message;
+            messageElement.textContent = `${new Date().toISOString()}: ${message}`;
+            messageElement.className = type;
             messagesDiv.appendChild(messageElement);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
+
+        connect();
     </script>
 </body>
 </html>
