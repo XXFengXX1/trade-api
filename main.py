@@ -88,6 +88,13 @@ def get_db():
     finally:
         db.close()
 
+@app.get("/ws-test")
+def test_websocket():
+    return {
+        "status": "WebSocket endpoint is running",
+        "active_connections": len(manager.active_connections),
+        "host": os.getenv('HOST', 'not set')
+    }
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
