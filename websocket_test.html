@@ -18,7 +18,9 @@
 
     <script>
         const messagesDiv = document.getElementById('messages');
-        const ws = new WebSocket('ws://localhost:8000/ws');
+        // Get the current host and port from the browser URL
+        const wsUrl = `ws://${window.location.hostname}:8000/ws`;
+        const ws = new WebSocket(wsUrl);
 
         ws.onopen = function() {
             addMessage('Connected to WebSocket');
@@ -26,7 +28,7 @@
 
         ws.onmessage = function(event) {
             const data = JSON.parse(event.data);
-            addMessage('Received order: ' + JSON.stringify(data, null, 2));
+            addMessage('New order received: ' + JSON.stringify(data, null, 2));
         };
 
         ws.onclose = function() {
@@ -35,7 +37,7 @@
 
         function addMessage(message) {
             const messageElement = document.createElement('div');
-            messageElement.textContent = message;
+            messageElement.textContent = new Date().toISOString() + ': ' + message;
             messagesDiv.appendChild(messageElement);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }

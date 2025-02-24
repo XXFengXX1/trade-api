@@ -1,4 +1,3 @@
-# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -21,16 +20,9 @@ var/
 *.egg
 .venv/
 
-# IDE
 .idea/
 .vscode/
-
-# Environment variables
 .env
-
-# Database
 *.db
 *.sqlite3
-
-# Logs
 *.log

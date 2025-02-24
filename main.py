@@ -1,8 +1,15 @@
+# Applicant: Finn(Feng) Xiong
+
 from fastapi import FastAPI, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from typing import List
 import os
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 from models import Base, Order
 from schemas import OrderCreate, OrderResponse
@@ -13,7 +20,7 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Database configuration from environment variables
+# Database configuration from different environment variables
 if os.getenv("GITHUB_ACTIONS"):
     DATABASE_URL = os.getenv(
         "DATABASE_URL",
@@ -28,7 +35,7 @@ else:
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Create tables
+# Create tables for db
 Base.metadata.create_all(bind=engine)
 
 
@@ -39,17 +46,26 @@ class ConnectionManager:
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
         self.active_connections.append(websocket)
+        logger.info(f"New WebSocket connection. Total connections: {len(self.active_connections)}")
 
     def disconnect(self, websocket: WebSocket):
         self.active_connections.remove(websocket)
+        logger.info(f"WebSocket disconnected. Remaining connections: {len(self.active_connections)}")
 
     async def broadcast(self, message: dict):
-        if self.active_connections:
-            for connection in self.active_connections:
-                try:
-                    await connection.send_json(message)
-                except:
-                    self.active_connections.remove(connection)
+        logger.info(f"Broadcasting to {len(self.active_connections)} connections")
+        disconnected = []
+        for connection in self.active_connections:
+            try:
+                await connection.send_json(message)
+                logger.info("Broadcast successful")
+            except Exception as e:
+                logger.error(f"Failed to broadcast: {e}")
+                disconnected.append(connection)
+
+        for conn in disconnected:
+            if conn in self.active_connections:
+                self.active_connections.remove(conn)
 
 
 manager = ConnectionManager()
@@ -69,15 +85,18 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         while True:
             data = await websocket.receive_text()
+            logger.info(f"Received WebSocket message: {data}")
     except WebSocketDisconnect:
         manager.disconnect(websocket)
     except Exception as e:
+        logger.error(f"WebSocket error: {e}")
         manager.disconnect(websocket)
 
 
 @app.post("/orders/", response_model=OrderResponse)
 async def create_order(order: OrderCreate, db: Session = Depends(get_db)):
     try:
+        logger.info(f"Creating new order: {order.dict()}")
         db_order = Order(
             symbol=order.symbol,
             price=order.price,
@@ -98,16 +117,18 @@ async def create_order(order: OrderCreate, db: Session = Depends(get_db)):
         }
 
         try:
+            logger.info("Attempting to broadcast new order")
             await manager.broadcast({
                 "event": "new_order",
                 "data": response_data
             })
         except Exception as ws_error:
-            print(f"WebSocket broadcast failed: {ws_error}")
+            logger.error(f"WebSocket broadcast failed: {ws_error}")
 
         return response_data
 
     except Exception as e:
+        logger.error(f"Error creating order: {e}")
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -116,6 +137,7 @@ async def create_order(order: OrderCreate, db: Session = Depends(get_db)):
 def get_orders(db: Session = Depends(get_db)):
     try:
         orders = db.query(Order).all()
+        logger.info(f"Retrieved {len(orders)} orders")
         return [
             {
                 "id": order.id,
@@ -128,4 +150,5 @@ def get_orders(db: Session = Depends(get_db)):
             for order in orders
         ]
     except Exception as e:
+        logger.error(f"Error retrieving orders: {e}")
         raise HTTPException(status_code=500, detail=str(e))
