@@ -5,9 +5,14 @@ from sqlalchemy.orm import sessionmaker
 
 from main import app, get_db
 from models import Base
+import os
 
 # Test database URL
-SQLALCHEMY_DATABASE_URL = "postgresql://test_user:test_password@trade-api-db-1:5432/test_db"
+if os.getenv("GITHUB_ACTIONS"):
+    SQLALCHEMY_DATABASE_URL = "postgresql://test_user:test_password@localhost:5432/test_db"
+else:
+    SQLALCHEMY_DATABASE_URL = "postgresql://test_user:test_password@trade-api-db-1:5432/test_db"
+
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

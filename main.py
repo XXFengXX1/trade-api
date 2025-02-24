@@ -14,10 +14,16 @@ app = FastAPI(
 )
 
 # Database configuration from environment variables
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    f"postgresql://{os.getenv('USER', 'xiongfeng')}@trade-api-db-1:5432/trades"
-)
+if os.getenv("GITHUB_ACTIONS"):
+    DATABASE_URL = os.getenv(
+        "DATABASE_URL",
+        f"postgresql://{os.getenv('USER', 'xiongfeng')}@localhost:5432/trades"
+    )
+else:
+    DATABASE_URL = os.getenv(
+        "DATABASE_URL",
+        f"postgresql://{os.getenv('USER', 'xiongfeng')}@trade-api-db-1:5432/trades"
+    )
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
