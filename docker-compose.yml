@@ -6,7 +6,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://xiongfeng@db:5432/trades
+      - DATABASE_URL=postgresql://xiongfeng@trade-api-db-1:5432/trades
     depends_on:
       - db
     volumes:
