@@ -6,6 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="fb06fa3d-7f84-4bee-b0b1-63131cf31245" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/websocket_test.html" beforeDir="false" afterPath="$PROJECT_DIR$/websocket_test.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
