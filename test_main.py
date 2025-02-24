@@ -7,7 +7,7 @@ from main import app, get_db
 from models import Base
 
 # Test database URL
-SQLALCHEMY_DATABASE_URL = "postgresql://test_user:test_password@localhost:5432/test_db"
+SQLALCHEMY_DATABASE_URL = "postgresql://test_user:test_password@trade-api-db-1:5432/test_db"
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
